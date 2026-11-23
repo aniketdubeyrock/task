@@ -66,3 +66,8 @@ interface NotificationRepository : JpaRepository<com.taskflow.domain.Notificatio
     fun findAllByRecipientIdOrderByCreatedAtDesc(recipientId: UUID): List<com.taskflow.domain.Notification>
     fun countByRecipientIdAndIsReadFalse(recipientId: UUID): Long
 }
+
+@Repository
+interface UserLoginLogRepository : JpaRepository<com.taskflow.domain.UserLoginLog, UUID> {
+    fun findAllByOrderByCreatedAtDesc(): List<com.taskflow.domain.UserLoginLog>
+}

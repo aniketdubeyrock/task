@@ -48,11 +48,32 @@ class AuthController(
 
     @PostMapping("/auth/login")
     @Operation(summary = "Authenticate user and obtain JWT token")
-    fun login(@Valid @RequestBody request: LoginRequest): ResponseEntity<ApiResponse<AuthResponse>> {
-        val authResponse = authService.login(request)
+    fun login(
+        @Valid @RequestBody request: LoginRequest,
+        httpRequest: jakarta.servlet.http.HttpServletRequest
+    ): ResponseEntity<ApiResponse<AuthResponse>> {
+        val ipAddress = extractClientIp(httpRequest)
+        val userAgent = httpRequest.getHeader("User-Agent") ?: "Unknown"
+        val authResponse = authService.login(request, ipAddress, userAgent)
         return ResponseEntity.ok(
             ApiResponse(success = true, data = authResponse, message = "Login successful")
         )
+    }
+
+    private fun extractClientIp(request: jakarta.servlet.http.HttpServletRequest): String {
+        val headers = listOf(
+            "X-Forwarded-For",
+            "X-Real-IP",
+            "CF-Connecting-IP",
+            "True-Client-IP"
+        )
+        for (header in headers) {
+            val value = request.getHeader(header)
+            if (!value.isNullOrBlank() && !value.equals("unknown", ignoreCase = true)) {
+                return value.split(",")[0].trim()
+            }
+        }
+        return request.remoteAddr ?: "Unknown"
     }
 
     @GetMapping("/auth/me")

@@ -147,3 +147,33 @@ class Notification(
     @Column(nullable = false, updatable = false)
     var createdAt: Instant = Instant.now()
 )
+
+@Entity
+@Table(name = "user_login_logs")
+class UserLoginLog(
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    var id: UUID? = null,
+
+    @Column(name = "user_id")
+    var userId: UUID? = null,
+
+    @Column(nullable = false)
+    var email: String,
+
+    @Column(name = "ip_address", nullable = false)
+    var ipAddress: String,
+
+    @Column(name = "user_agent", columnDefinition = "TEXT")
+    var userAgent: String? = null,
+
+    var browser: String? = null,
+
+    var os: String? = null,
+
+    @Column(nullable = false)
+    var status: String = "SUCCESS",
+
+    @Column(nullable = false, updatable = false)
+    var createdAt: Instant = Instant.now()
+)
