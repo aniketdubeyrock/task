@@ -18,6 +18,7 @@ interface CustomDatePickerProps {
   minDate?: string;
   placeholder?: string;
   className?: string;
+  direction?: 'up' | 'down';
 }
 
 const MONTH_NAMES = [
@@ -35,6 +36,7 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
   minDate,
   placeholder = 'Select deadline...',
   className,
+  direction = 'up',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -204,11 +206,14 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 6, scale: 0.98 }}
+            initial={{ opacity: 0, y: direction === 'up' ? -6 : 6, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 4, scale: 0.98 }}
+            exit={{ opacity: 0, y: direction === 'up' ? -6 : 4, scale: 0.98 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="absolute top-full left-0 mt-2 z-50 w-72 bg-white dark:bg-slate-900 rounded-2xl shadow-saffron-lg border border-saffron-200/90 dark:border-slate-800 p-3.5 text-slate-800 dark:text-slate-100 select-none overflow-hidden"
+            className={cn(
+              'absolute z-50 w-72 bg-white dark:bg-slate-900 rounded-2xl shadow-saffron-lg border border-saffron-200/90 dark:border-slate-800 p-3.5 text-slate-800 dark:text-slate-100 select-none overflow-hidden',
+              direction === 'up' ? 'bottom-full left-0 mb-2' : 'top-full left-0 mt-2'
+            )}
           >
             {/* Header: Month / Year with Navigation */}
             <div className="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-100 dark:border-slate-800">

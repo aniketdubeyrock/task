@@ -20,6 +20,7 @@ import { cn } from '../../../utils/cn';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
+import { CustomDropdown } from '../../../components/ui/CustomDropdown';
 import { CustomDatePicker } from '../../../components/ui/CustomDatePicker';
 import { Modal } from '../../../components/ui/Modal';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
@@ -530,36 +531,47 @@ export const ProjectBoardPage: React.FC<ProjectBoardPageProps> = ({ projectId, o
           </div>
 
           <div className="w-36">
-            <Select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}>
-              <option value="ALL">All Priorities</option>
-              <option value="LOW">Low</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="HIGH">High</option>
-            </Select>
+            <CustomDropdown
+              value={priorityFilter}
+              onChange={setPriorityFilter}
+              options={[
+                { value: 'ALL', label: 'All Priorities' },
+                { value: 'LOW', label: 'Low' },
+                { value: 'MEDIUM', label: 'Medium' },
+                { value: 'HIGH', label: 'High' },
+              ]}
+              size="sm"
+            />
           </div>
 
           <div className="w-44">
-            <Select value={assigneeFilter} onChange={(e) => setAssigneeFilter(e.target.value)}>
-              <option value="ALL">All Assignees</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
-              ))}
-            </Select>
+            <CustomDropdown
+              value={assigneeFilter}
+              onChange={setAssigneeFilter}
+              options={[
+                { value: 'ALL', label: 'All Assignees' },
+                ...users.map((u) => ({ value: u.id, label: u.name })),
+              ]}
+              size="sm"
+            />
           </div>
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">Sort:</span>
-            <div className="w-32">
-              <Select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-                <option value="dueDate">Due Date</option>
-                <option value="priority">Priority</option>
-                <option value="createdAt">Created Date</option>
-                <option value="title">Title</option>
-              </Select>
+            <div className="w-36">
+              <CustomDropdown
+                value={sortBy}
+                onChange={setSortBy}
+                options={[
+                  { value: 'dueDate', label: 'Due Date' },
+                  { value: 'priority', label: 'Priority' },
+                  { value: 'createdAt', label: 'Created Date' },
+                  { value: 'title', label: 'Title' },
+                ]}
+                size="sm"
+              />
             </div>
           </div>
 
@@ -888,25 +900,32 @@ export const ProjectBoardPage: React.FC<ProjectBoardPageProps> = ({ projectId, o
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <Select
+            <CustomDropdown
               label="Priority"
               value={taskPriority}
-              onChange={(e) => setTaskPriority(e.target.value as TaskPriority)}
-            >
-              <option value="LOW">Low</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="HIGH">High</option>
-            </Select>
+              onChange={(val) => setTaskPriority(val as TaskPriority)}
+              options={[
+                { value: 'LOW', label: 'Low', badge: 'LOW' },
+                { value: 'MEDIUM', label: 'Medium', badge: 'MED' },
+                {
+                  value: 'HIGH',
+                  label: 'High',
+                  badge: 'HIGH',
+                  badgeColor: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800',
+                },
+              ]}
+            />
 
-            <Select
+            <CustomDropdown
               label="Status"
               value={taskStatus}
-              onChange={(e) => setTaskStatus(e.target.value as TaskStatus)}
-            >
-              <option value="TODO">To Do</option>
-              <option value="IN_PROGRESS">In Progress</option>
-              <option value="DONE">Done</option>
-            </Select>
+              onChange={(val) => setTaskStatus(val as TaskStatus)}
+              options={[
+                { value: 'TODO', label: 'To Do' },
+                { value: 'IN_PROGRESS', label: 'In Progress' },
+                { value: 'DONE', label: 'Done' },
+              ]}
+            />
           </div>
 
           <div className="flex flex-col gap-2">
@@ -921,25 +940,34 @@ export const ProjectBoardPage: React.FC<ProjectBoardPageProps> = ({ projectId, o
                   }}
                   error={taskDueDateError}
                   placeholder="Select deadline..."
+                  direction="up"
                 />
               </div>
 
-              <Select
-                label="Assignee / Collaborator"
-                value={taskAssigneeId}
-                onChange={(e) => {
-                  setTaskAssigneeId(e.target.value);
-                  setTaskAssigneeError('');
-                }}
-                error={taskAssigneeError}
-              >
-                <option value="">Select Collaborator...</option>
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name} ({u.role === 'SUPERADMIN' ? 'Superadmin' : 'Member'})
-                  </option>
-                ))}
-              </Select>
+              <div>
+                <CustomDropdown
+                  label="Assignee / Collaborator"
+                  value={taskAssigneeId}
+                  onChange={(val) => {
+                    setTaskAssigneeId(val);
+                    setTaskAssigneeError('');
+                  }}
+                  placeholder="Select Collaborator..."
+                  direction="up"
+                  options={[
+                    { value: '', label: 'Select Collaborator...' },
+                    ...users.map((u) => ({
+                      value: u.id,
+                      label: `${u.name} (${u.role === 'SUPERADMIN' ? 'Superadmin' : 'Member'})`,
+                    })),
+                  ]}
+                />
+                {taskAssigneeError && (
+                  <span className="text-xs text-rose-600 font-semibold mt-1 block">
+                    {taskAssigneeError}
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Quick Due Date Presets */}

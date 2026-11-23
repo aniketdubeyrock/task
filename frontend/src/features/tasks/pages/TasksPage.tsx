@@ -5,6 +5,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useToast } from '../../../components/ui/Toast';
 import { PriorityBadge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
+import { CustomDropdown } from '../../../components/ui/CustomDropdown';
 import {
   CheckSquare,
   Search,
@@ -230,16 +231,19 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
             />
           </div>
 
-          <select
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
-            className="text-xs py-2 px-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-saffron-500/20 cursor-pointer"
-          >
-            <option value="ALL">All Priorities</option>
-            <option value="HIGH">High Priority</option>
-            <option value="MEDIUM">Medium Priority</option>
-            <option value="LOW">Low Priority</option>
-          </select>
+          <div className="w-36">
+            <CustomDropdown
+              value={priorityFilter}
+              onChange={setPriorityFilter}
+              options={[
+                { value: 'ALL', label: 'All Priorities' },
+                { value: 'HIGH', label: 'High Priority', badge: 'HIGH', badgeColor: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800' },
+                { value: 'MEDIUM', label: 'Medium Priority' },
+                { value: 'LOW', label: 'Low Priority' },
+              ]}
+              size="sm"
+            />
+          </div>
 
           <button
             onClick={() => fetchTasks(true)}

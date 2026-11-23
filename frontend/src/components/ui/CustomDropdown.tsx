@@ -19,6 +19,7 @@ interface CustomDropdownProps {
   placeholder?: string;
   className?: string;
   size?: 'sm' | 'md';
+  direction?: 'up' | 'down';
 }
 
 export const CustomDropdown: React.FC<CustomDropdownProps> = ({
@@ -29,6 +30,7 @@ export const CustomDropdown: React.FC<CustomDropdownProps> = ({
   placeholder = 'Select option...',
   className,
   size = 'md',
+  direction = 'down',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -102,11 +104,14 @@ export const CustomDropdown: React.FC<CustomDropdownProps> = ({
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 4, scale: 0.98 }}
+            initial={{ opacity: 0, y: direction === 'up' ? -4 : 4, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 4, scale: 0.98 }}
+            exit={{ opacity: 0, y: direction === 'up' ? -4 : 4, scale: 0.98 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute top-full left-0 mt-1.5 z-50 w-full min-w-[160px] bg-white dark:bg-slate-900 rounded-2xl shadow-saffron-lg border border-saffron-200/90 dark:border-slate-800 p-1.5 select-none overflow-hidden"
+            className={cn(
+              'absolute z-50 w-full min-w-[160px] bg-white dark:bg-slate-900 rounded-2xl shadow-saffron-lg border border-saffron-200/90 dark:border-slate-800 p-1.5 select-none overflow-hidden',
+              direction === 'up' ? 'bottom-full left-0 mb-1.5' : 'top-full left-0 mt-1.5'
+            )}
           >
             <div className="flex flex-col gap-0.5 max-h-60 overflow-y-auto">
               {options.map((opt) => {

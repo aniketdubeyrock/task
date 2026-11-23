@@ -8,6 +8,7 @@ import { Button } from '../../../components/ui/Button';
 import { Modal } from '../../../components/ui/Modal';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
+import { CustomDropdown } from '../../../components/ui/CustomDropdown';
 import { CustomDatePicker } from '../../../components/ui/CustomDatePicker';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
 import {
@@ -552,36 +553,45 @@ export const TaskDetailPage: React.FC<TaskDetailPageProps> = ({ taskId, onNaviga
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <Select
+            <CustomDropdown
               label="Priority"
               value={editPriority}
-              onChange={(e) => setEditPriority(e.target.value as TaskPriority)}
-            >
-              <option value="LOW">Low</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="HIGH">High</option>
-            </Select>
+              onChange={(val) => setEditPriority(val as TaskPriority)}
+              options={[
+                { value: 'LOW', label: 'Low', badge: 'LOW' },
+                { value: 'MEDIUM', label: 'Medium', badge: 'MED' },
+                {
+                  value: 'HIGH',
+                  label: 'High',
+                  badge: 'HIGH',
+                  badgeColor: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800',
+                },
+              ]}
+            />
 
             <CustomDatePicker
               label="Due Date / Deadline"
               value={editDueDate}
               onChange={(dateStr) => setEditDueDate(dateStr)}
               placeholder="Select deadline..."
+              direction="up"
             />
           </div>
 
-          <Select
+          <CustomDropdown
             label="Collaborator / Assignee"
             value={editAssigneeId}
-            onChange={(e) => setEditAssigneeId(e.target.value)}
-          >
-            <option value="">Select Collaborator...</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.name} ({u.role === 'SUPERADMIN' ? 'Superadmin' : 'Member'})
-              </option>
-            ))}
-          </Select>
+            onChange={(val) => setEditAssigneeId(val)}
+            placeholder="Select Collaborator..."
+            direction="up"
+            options={[
+              { value: '', label: 'Select Collaborator...' },
+              ...users.map((u) => ({
+                value: u.id,
+                label: `${u.name} (${u.role === 'SUPERADMIN' ? 'Superadmin' : 'Member'})`,
+              })),
+            ]}
+          />
 
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
             <Button variant="outline" type="button" onClick={() => setIsEditOpen(false)}>
