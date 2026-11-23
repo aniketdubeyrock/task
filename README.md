@@ -120,18 +120,20 @@ The application is seeded automatically on initial boot via [`DatabaseSeeder.kt`
 
 ## 🏁 Quickstart Guide
 
-### Prerequisites
-* **Java 17+** (OpenJDK 17 recommended)
-* **Node.js 18+**
-* **PostgreSQL** running locally on port `5432` with database `task` (credentials in `backend/src/main/resources/application.yml`).
+### 🚀 Option A: One-Command Docker Compose (Production Stack)
+Starts PostgreSQL, Spring Boot backend, and React frontend simultaneously with one command:
+```bash
+docker compose up --build
+```
+* **Frontend**: `http://localhost:5173`
+* **Backend API**: `http://localhost:5000`
+* **Swagger UI Docs**: `http://localhost:5000/swagger-ui.html`
 
 ---
 
-### Option A: Run Both Concurrently (Recommended)
-
+### Option B: Run Concurrently with Node/JVM
 From the project root:
 ```powershell
-cd "c:\Users\Aniket\Desktop\React projects\assignmentbyaniket"
 npm run dev
 ```
 * Backend runs at: `http://localhost:5000`
@@ -139,7 +141,7 @@ npm run dev
 
 ---
 
-### Option B: Run in Separate Terminals
+### Option C: Run in Separate Terminals
 
 #### Terminal 1 — Backend (Spring Boot 3 + Kotlin)
 ```powershell

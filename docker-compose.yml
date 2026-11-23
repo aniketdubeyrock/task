@@ -27,11 +27,11 @@ services:
     restart: always
     environment:
       PORT: 5000
-      NODE_ENV: production
-      FRONTEND_URL: http://localhost:5173
-      DATABASE_URL: postgresql://postgres:Aniket@postgres:5432/task?schema=public
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/task
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: Aniket
       JWT_SECRET: taskflow_jwt_secret_aniket_super_secure_key_2026_xyz
-      JWT_EXPIRES_IN: 7d
+      FRONTEND_URL: http://localhost:5173
     ports:
       - "5000:5000"
     depends_on:
