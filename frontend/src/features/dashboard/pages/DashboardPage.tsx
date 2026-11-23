@@ -43,6 +43,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
+  const [hoveredStatusIndex, setHoveredStatusIndex] = useState<number | null>(null);
 
   const toggleFlip = (cardKey: string) => {
     setFlippedCards((prev) => ({
@@ -499,47 +500,133 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
               </div>
             </div>
 
-            {/* Task Health Donut Chart */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-3xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">Task Distribution</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Breakdown by current workflow status</p>
+            {/* Task Health Donut Chart with Interactive Hover Effects */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-3xl p-6 shadow-sm hover:shadow-xl hover:border-saffron-300 dark:hover:border-saffron-500/50 transition-all duration-300 flex flex-col justify-between relative overflow-hidden group/chart">
+              {/* Ambient Glow */}
+              <div className="absolute -right-10 -top-10 w-44 h-44 bg-gradient-to-br from-saffron-500/10 via-amber-500/10 to-transparent rounded-full blur-2xl pointer-events-none group-hover/chart:scale-150 transition-transform duration-700" />
 
-              <div className="h-56 flex items-center justify-center">
-                {totalTasks === 0 ? (
-                  <p className="text-xs text-slate-400 dark:text-slate-500">No task data available yet</p>
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={statusChartData}
-                        innerRadius={55}
-                        outerRadius={80}
-                        paddingAngle={4}
-                        dataKey="value"
-                      >
-                        {statusChartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                )}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-saffron-500" />
+                    Task Distribution
+                  </h3>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                    Live Telemetry
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                  Breakdown by current workflow status
+                </p>
+
+                {/* Donut Chart with Center Analytics Callout */}
+                <div className="h-56 relative flex items-center justify-center">
+                  {totalTasks === 0 ? (
+                    <p className="text-xs text-slate-400 dark:text-slate-500">No task data available yet</p>
+                  ) : (
+                    <>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={statusChartData}
+                            innerRadius={56}
+                            outerRadius={hoveredStatusIndex !== null ? 82 : 78}
+                            paddingAngle={5}
+                            dataKey="value"
+                            onMouseEnter={(_, index) => setHoveredStatusIndex(index)}
+                            onMouseLeave={() => setHoveredStatusIndex(null)}
+                          >
+                            {statusChartData.map((entry, index) => (
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={entry.color}
+                                className="cursor-pointer transition-all duration-300"
+                                opacity={hoveredStatusIndex === null || hoveredStatusIndex === index ? 1 : 0.45}
+                                stroke={hoveredStatusIndex === index ? '#ffffff' : 'transparent'}
+                                strokeWidth={hoveredStatusIndex === index ? 2 : 0}
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            content={({ active, payload }) => {
+                              if (active && payload && payload.length) {
+                                const data = payload[0];
+                                return (
+                                  <div className="bg-slate-900/95 text-white backdrop-blur-md p-2.5 rounded-xl shadow-xl border border-slate-800 text-xs">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span
+                                        className="w-2.5 h-2.5 rounded-full"
+                                        style={{ backgroundColor: data.payload.color }}
+                                      />
+                                      <span className="font-bold">{data.name}</span>
+                                    </div>
+                                    <div className="text-slate-300">
+                                      Tasks: <strong className="text-white">{data.value}</strong>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+
+                      {/* Donut Hole Center Telemetry Badge */}
+                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                        <span className="text-2xl font-black text-slate-900 dark:text-white leading-none">
+                          {hoveredStatusIndex !== null
+                            ? statusChartData[hoveredStatusIndex].value
+                            : totalTasks}
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1">
+                          {hoveredStatusIndex !== null
+                            ? statusChartData[hoveredStatusIndex].name.split('/')[0].trim()
+                            : 'Total Tasks'}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
-              <div className="flex items-center justify-center gap-4 text-xs font-medium text-slate-600 dark:text-slate-300 mt-2">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                  <span>Done</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-brand-600" />
-                  <span>Active</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-                  <span>Overdue</span>
-                </div>
+              {/* Interactive Status Pill Cards with Hover Effects */}
+              <div className="grid grid-cols-3 gap-2 mt-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                {statusChartData.map((item, idx) => {
+                  const isHovered = hoveredStatusIndex === idx;
+                  const percent = totalTasks > 0 ? Math.round((item.value / totalTasks) * 100) : 0;
+
+                  return (
+                    <div
+                      key={item.name}
+                      onMouseEnter={() => setHoveredStatusIndex(idx)}
+                      onMouseLeave={() => setHoveredStatusIndex(null)}
+                      className={`p-2.5 rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col justify-between ${
+                        isHovered
+                          ? 'scale-105 shadow-md bg-saffron-50/80 dark:bg-slate-800 border-saffron-300 dark:border-amber-500'
+                          : 'bg-slate-50/70 dark:bg-slate-800/40 border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span
+                          className="w-2 h-2 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: item.color }}
+                        />
+                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 truncate">
+                          {item.name.split('/')[0].trim()}
+                        </span>
+                      </div>
+                      <div className="flex items-baseline justify-between gap-1">
+                        <span className="text-sm font-black text-slate-900 dark:text-white">
+                          {item.value}
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-400">
+                          {percent}%
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

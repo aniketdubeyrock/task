@@ -20,6 +20,7 @@ import { cn } from '../../../utils/cn';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
+import { CustomDatePicker } from '../../../components/ui/CustomDatePicker';
 import { Modal } from '../../../components/ui/Modal';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
 import { PriorityBadge } from '../../../components/ui/Badge';
@@ -911,15 +912,15 @@ export const ProjectBoardPage: React.FC<ProjectBoardPageProps> = ({ projectId, o
           <div className="flex flex-col gap-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <Input
-                  label="Due Date"
-                  type="date"
+                <CustomDatePicker
+                  label="Due Date / Deadline"
                   value={taskDueDate}
-                  onChange={(e) => {
-                    setTaskDueDate(e.target.value);
+                  onChange={(dateStr) => {
+                    setTaskDueDate(dateStr);
                     setTaskDueDateError('');
                   }}
                   error={taskDueDateError}
+                  placeholder="Select deadline..."
                 />
               </div>
 

@@ -8,6 +8,7 @@ import { Button } from '../../../components/ui/Button';
 import { Modal } from '../../../components/ui/Modal';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
+import { CustomDatePicker } from '../../../components/ui/CustomDatePicker';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
 import {
   ArrowLeft,
@@ -561,11 +562,11 @@ export const TaskDetailPage: React.FC<TaskDetailPageProps> = ({ taskId, onNaviga
               <option value="HIGH">High</option>
             </Select>
 
-            <Input
-              label="Due Date"
-              type="date"
+            <CustomDatePicker
+              label="Due Date / Deadline"
               value={editDueDate}
-              onChange={(e) => setEditDueDate(e.target.value)}
+              onChange={(dateStr) => setEditDueDate(dateStr)}
+              placeholder="Select deadline..."
             />
           </div>
 
