@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+backend/.gradle/
+.pnp
+.pnp.js
+
+# Production builds
+dist/
+build/
+.output/
+frontend/dist/
+backend/build/
+
+# Environment variables & secrets
+.env
+.env.local
+.env.*.local
+*.env
+
+# Neon & Cloud configs
+.neon
+.neon/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Coverage / Tests
+coverage/
+.nyc_output/

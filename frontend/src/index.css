@@ -1,0 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  body {
+    @apply antialiased text-slate-800 bg-[#FAF9F6] font-sans transition-colors duration-200;
+  }
+}
+
+html.dark body, body.dark {
+  background-color: #020617 !important;
+  color: #f8fafc !important;
+}
+
+::selection {
+  background-color: #f97316;
+  color: #ffffff;
+}
+
+/* Custom Saffron Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #fed7aa;
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #7c2d12;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #fb923c;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #ea580c;
+}
+
+/* Bulletproof Button & Card Styles */
+.btn-saffron-primary {
+  background-color: #f97316 !important;
+  background-image: linear-gradient(135deg, #f97316 0%, #ea580c 50%, #c2410c 100%) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 14px 0 rgba(249, 115, 22, 0.35) !important;
+  border: 1px solid rgba(251, 146, 60, 0.6) !important;
+}
+
+.btn-saffron-primary:hover {
+  background-color: #ea580c !important;
+  background-image: linear-gradient(135deg, #ea580c 0%, #c2410c 100%) !important;
+  box-shadow: 0 6px 20px 0 rgba(249, 115, 22, 0.5) !important;
+  color: #ffffff !important;
+}
+
+.btn-saffron-primary:active {
+  transform: scale(0.98);
+}
+
+.card-saffron-glow {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-saffron-glow:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px -6px rgba(249, 115, 22, 0.18), 0 4px 10px -2px rgba(249, 115, 22, 0.08);
+  border-color: rgba(251, 146, 60, 0.5);
+}
+
+.dark .card-saffron-glow:hover {
+  box-shadow: 0 12px 28px -6px rgba(249, 115, 22, 0.25), 0 4px 10px -2px rgba(0, 0, 0, 0.6);
+  border-color: rgba(249, 115, 22, 0.5);
+}

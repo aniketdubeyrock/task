@@ -1,0 +1,22 @@
+server:
+  port: 0
+
+spring:
+  application:
+    name: taskflow-test
+  datasource:
+    url: jdbc:postgresql://localhost:5432/task?currentSchema=public
+    username: postgres
+    password: Aniket
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+
+jwt:
+  secret: taskflow_jwt_secret_aniket_super_secure_key_2026_xyz
+  expiration-ms: 86400000
+
+app:
+  frontend-url: http://localhost:5173
