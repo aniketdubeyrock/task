@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
+import { ProfileModal } from './ProfileModal';
 import {
   User as UserIcon,
   LogOut,
@@ -8,6 +10,7 @@ import {
   ChevronDown,
   Sparkles,
   ArrowRightLeft,
+  Settings,
 } from 'lucide-react';
 
 interface UserProfileDropdownProps {
@@ -18,6 +21,8 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({ onNavi
   const { user, isSuperAdmin, logout, login } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -54,6 +59,13 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({ onNavi
     } finally {
       setIsSwitching(false);
     }
+  };
+
+  const handleLogoutClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setIsOpen(false);
+    setIsLogoutModalOpen(true);
   };
 
   return (
@@ -146,10 +158,23 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({ onNavi
             </div>
 
             {/* Actions */}
-            <div className="p-2">
+            <div className="p-2 space-y-1">
               <button
-                onClick={logout}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-colors"
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  setIsProfileModalOpen(true);
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-saffron-50 dark:hover:bg-slate-800 hover:text-saffron-700 dark:hover:text-amber-400 rounded-xl transition-colors cursor-pointer"
+              >
+                <Settings className="w-4 h-4 text-saffron-600 dark:text-amber-400" />
+                <span>Profile & Password</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleLogoutClick}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-colors cursor-pointer"
               >
                 <LogOut className="w-4 h-4" />
                 <span>Sign Out</span>
@@ -158,6 +183,26 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({ onNavi
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Profile & Security Modal */}
+      <ProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+      />
+
+      {/* Logout Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={() => {
+          setIsLogoutModalOpen(false);
+          logout();
+        }}
+        title="Sign Out of TaskFlow?"
+        message="Are you sure you want to end your session? Any unsaved progress will be safely preserved in your workspace."
+        confirmText="Sign Out"
+        cancelText="Stay Signed In"
+      />
     </div>
   );
 };

@@ -11,6 +11,7 @@ import { EmailTemplatesPage } from './features/admin/pages/EmailTemplatesPage';
 import { TasksPage } from './features/tasks/pages/TasksPage';
 import { TaskDetailPage } from './features/tasks/pages/TaskDetailPage';
 import { FullScreenLoader } from './components/ui/AnimatedLoader';
+import { ServerErrorModal } from './components/feedback/ServerErrorModal';
 
 // Wrapper for ProjectBoardPage to extract :id from react-router-dom params
 const ProjectBoardWrapper: React.FC = () => {
@@ -46,88 +47,116 @@ export const App: React.FC = () => {
   const { user, isLoading, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
 
+  // Global 500 Error Modal State
+  const [serverError, setServerError] = React.useState<{
+    isOpen: boolean;
+    endpoint?: string;
+    message?: string;
+  }>({ isOpen: false });
+
+  React.useEffect(() => {
+    const handleServerError = (e: Event) => {
+      const customEvent = e as CustomEvent<{ endpoint?: string; message?: string }>;
+      setServerError({
+        isOpen: true,
+        endpoint: customEvent.detail?.endpoint,
+        message: customEvent.detail?.message,
+      });
+    };
+
+    window.addEventListener('taskflow:server-error', handleServerError);
+    return () => window.removeEventListener('taskflow:server-error', handleServerError);
+  }, []);
+
   if (isLoading) {
     return <FullScreenLoader message="Connecting to TaskFlow Workspace..." />;
   }
 
-  // Unauthenticated routes
-  if (!user) {
-    return (
-      <Routes>
-        <Route path="/login" element={<LoginPage onNavigate={navigate} />} />
-        <Route path="/register" element={<RegisterPage onNavigate={navigate} />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    );
-  }
-
-  // Authenticated routes
   return (
-    <Routes>
-      {/* Auth redirects for logged in users */}
-      <Route path="/login" element={<Navigate to="/dashboard" replace />} />
-      <Route path="/register" element={<Navigate to="/dashboard" replace />} />
-
-      {/* Workspace Routes */}
-      <Route
-        path="/dashboard"
-        element={
-          <AppLayout
-            title="Analytics Dashboard"
-            subtitle="Overview of system workload, project status distribution, and upcoming deadlines"
-          >
-            <DashboardPage onNavigate={navigate} />
-          </AppLayout>
-        }
+    <>
+      <ServerErrorModal
+        isOpen={serverError.isOpen}
+        onClose={() => setServerError({ isOpen: false })}
+        endpoint={serverError.endpoint}
+        errorMessage={serverError.message}
       />
 
-      <Route
-        path="/projects"
-        element={
-          <AppLayout
-            title="Projects Overview"
-            subtitle="Track team progress, deadlines, and milestone completions"
-          >
-            <ProjectsPage onNavigate={navigate} />
-          </AppLayout>
-        }
-      />
+      {/* Unauthenticated routes */}
+      {!user ? (
+        <Routes>
+          <Route path="/login" element={<LoginPage onNavigate={navigate} />} />
+          <Route path="/register" element={<RegisterPage onNavigate={navigate} />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      ) : (
+        /* Authenticated routes */
+        <Routes>
+          {/* Auth redirects for logged in users */}
+          <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/register" element={<Navigate to="/dashboard" replace />} />
 
-      <Route path="/projects/:id" element={<ProjectBoardWrapper />} />
+          {/* Workspace Routes */}
+          <Route
+            path="/dashboard"
+            element={
+              <AppLayout
+                title="Analytics Dashboard"
+                subtitle="Overview of system workload, project status distribution, and upcoming deadlines"
+              >
+                <DashboardPage onNavigate={navigate} />
+              </AppLayout>
+            }
+          />
 
-      <Route
-        path="/tasks"
-        element={
-          <AppLayout
-            title="My Tasks & Deliverables"
-            subtitle="Track personal assignments, collaborator tasks, and deadlines"
-          >
-            <TasksPage onNavigate={navigate} />
-          </AppLayout>
-        }
-      />
+          <Route
+            path="/projects"
+            element={
+              <AppLayout
+                title="Projects Overview"
+                subtitle="Track team progress, deadlines, and milestone completions"
+              >
+                <ProjectsPage onNavigate={navigate} />
+              </AppLayout>
+            }
+          />
 
-      <Route path="/tasks/:id" element={<TaskDetailWrapper />} />
+          <Route path="/projects/:id" element={<ProjectBoardWrapper />} />
 
-      {/* Superadmin Only: Email Templates */}
-      <Route
-        path="/admin/email-templates"
-        element={
-          isSuperAdmin ? (
-            <AppLayout
-              title="Email Template Management"
-              subtitle="Manage dynamic HTML notifications, placeholder tokens, and test SMTP deliverability"
-            >
-              <EmailTemplatesPage />
-            </AppLayout>
-          ) : (
-            <Navigate to="/dashboard" replace />
-          )
-        }
-      />
+          <Route
+            path="/tasks"
+            element={
+              <AppLayout
+                title="My Tasks & Deliverables"
+                subtitle="Track personal assignments, collaborator tasks, and deadlines"
+              >
+                <TasksPage onNavigate={navigate} />
+              </AppLayout>
+            }
+          />
 
-      {/* Catch-all redirect to Dashboard */}
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
-    </Routes>
+          <Route path="/tasks/:id" element={<TaskDetailWrapper />} />
+
+          {/* Superadmin Only: Email Templates */}
+          <Route
+            path="/admin/email-templates"
+            element={
+              isSuperAdmin ? (
+                <AppLayout
+                  title="Email Template Management"
+                  subtitle="Manage dynamic HTML notifications, placeholder tokens, and test SMTP deliverability"
+                >
+                  <EmailTemplatesPage />
+                </AppLayout>
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
+
+          {/* Catch-all redirect to Dashboard */}
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      )}
+    </>
   );
 };

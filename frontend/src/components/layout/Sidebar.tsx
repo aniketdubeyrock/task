@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   LayoutDashboard,
   FolderKanban,
@@ -10,6 +10,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 
 interface SidebarProps {
   currentPath: string;
@@ -19,6 +20,7 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onCloseMobile }) => {
   const { user, isSuperAdmin, logout } = useAuth();
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   const handleNav = (path: string) => {
     onNavigate(path);
@@ -155,13 +157,27 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onClo
         </div>
 
         <button
-          onClick={logout}
-          className="w-full flex items-center justify-center gap-2 py-2 text-xs font-semibold text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all duration-150"
+          onClick={() => setIsLogoutModalOpen(true)}
+          className="w-full flex items-center justify-center gap-2 py-2 text-xs font-semibold text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all duration-150 cursor-pointer"
         >
           <LogOut className="w-3.5 h-3.5" />
           <span>Sign Out</span>
         </button>
       </div>
+
+      {/* Logout Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={() => {
+          setIsLogoutModalOpen(false);
+          logout();
+        }}
+        title="Sign Out of TaskFlow?"
+        message="Are you sure you want to end your session? Any unsaved progress will be safely preserved in your workspace."
+        confirmText="Sign Out"
+        cancelText="Stay Signed In"
+      />
     </aside>
   );
 };

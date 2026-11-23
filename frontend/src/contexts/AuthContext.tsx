@@ -9,6 +9,7 @@ interface AuthContextType {
   isSuperAdmin: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
+  updateUser: (updatedUser: User) => void;
   logout: () => void;
 }
 
@@ -16,30 +17,56 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('taskflow_user');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('taskflow_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
   });
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('taskflow_token'));
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  // If there's already a cached user in localStorage, don't block the screen with full screen loader
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    const saved = localStorage.getItem('taskflow_user');
+    const storedToken = localStorage.getItem('taskflow_token');
+    return Boolean(storedToken && !saved);
+  });
 
   useEffect(() => {
+    let isMounted = true;
     const verifyAuth = async () => {
       const storedToken = localStorage.getItem('taskflow_token');
       if (storedToken) {
         try {
           const res = await api.get('/auth/me');
-          if (res.data?.success) {
+          if (res.data?.success && isMounted) {
             setUser(res.data.data);
             localStorage.setItem('taskflow_user', JSON.stringify(res.data.data));
           }
         } catch {
-          logout();
+          if (isMounted) {
+            logout();
+          }
         }
       }
-      setIsLoading(false);
+      if (isMounted) {
+        setIsLoading(false);
+      }
     };
 
     verifyAuth();
+
+    // Safety timeout: Never stay in loading state longer than 6 seconds
+    const timer = setTimeout(() => {
+      if (isMounted) {
+        setIsLoading(false);
+      }
+    }, 6000);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -64,6 +91,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateUser = (updatedUser: User) => {
+    setUser(updatedUser);
+    localStorage.setItem('taskflow_user', JSON.stringify(updatedUser));
+  };
+
   const logout = () => {
     setUser(null);
     setToken(null);
@@ -82,6 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isSuperAdmin,
         login,
         register,
+        updateUser,
         logout,
       }}
     >

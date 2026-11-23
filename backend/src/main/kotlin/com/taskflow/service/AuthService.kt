@@ -62,6 +62,28 @@ class AuthService(
         return user.toDto()
     }
 
+    @Transactional
+    fun updateProfile(email: String, request: com.taskflow.dto.UpdateProfileRequest): UserDto {
+        val user = userRepository.findByEmail(email)
+            ?: throw ResourceNotFoundException("User not found")
+        user.name = request.name.trim()
+        val updated = userRepository.save(user)
+        return updated.toDto()
+    }
+
+    @Transactional
+    fun changePassword(email: String, request: com.taskflow.dto.ChangePasswordRequest) {
+        val user = userRepository.findByEmail(email)
+            ?: throw ResourceNotFoundException("User not found")
+
+        if (!passwordEncoder.matches(request.currentPassword, user.password)) {
+            throw UnauthorizedException("Current password is incorrect")
+        }
+
+        user.password = passwordEncoder.encode(request.newPassword)
+        userRepository.save(user)
+    }
+
     @Transactional(readOnly = true)
     fun getAllUsers(): List<UserDto> {
         return userRepository.findAll().map { it.toDto() }

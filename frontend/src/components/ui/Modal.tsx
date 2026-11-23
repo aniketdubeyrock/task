@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { cn } from '../../utils/cn';
@@ -22,6 +23,12 @@ export const Modal: React.FC<ModalProps> = ({
   maxWidth = 'md',
   className,
 }) => {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) onClose();
@@ -39,10 +46,10 @@ export const Modal: React.FC<ModalProps> = ({
     '4xl': 'max-w-4xl',
   };
 
-  return (
+  const modalContent = (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
+        <div className="fixed inset-0 z-[9999] overflow-y-auto">
           <div className="min-h-screen px-4 text-center flex items-center justify-center py-6">
             {/* Backdrop with modern blur */}
             <motion.div
@@ -50,7 +57,7 @@ export const Modal: React.FC<ModalProps> = ({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity"
+              className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm transition-opacity"
               onClick={onClose}
             />
 
@@ -61,7 +68,7 @@ export const Modal: React.FC<ModalProps> = ({
               exit={{ opacity: 0, scale: 0.95, y: 12 }}
               transition={{ type: 'spring', damping: 25, stiffness: 350 }}
               className={cn(
-                'relative inline-block w-full text-left align-middle bg-white dark:bg-slate-900 rounded-3xl shadow-saffron-lg border border-saffron-100/90 dark:border-slate-800 overflow-hidden p-6 sm:p-7 z-10 before:absolute before:top-0 before:left-0 before:right-0 before:h-1.5 before:bg-gradient-to-r before:from-saffron-500 before:via-amber-400 before:to-saffron-600',
+                'relative inline-block w-full text-left align-middle bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-saffron-100/90 dark:border-slate-800 overflow-hidden p-6 sm:p-7 z-10 before:absolute before:top-0 before:left-0 before:right-0 before:h-1.5 before:bg-gradient-to-r before:from-saffron-500 before:via-amber-400 before:to-saffron-600',
                 maxWidthMap[maxWidth],
                 className
               )}
@@ -82,7 +89,7 @@ export const Modal: React.FC<ModalProps> = ({
                   </div>
                   <button
                     onClick={onClose}
-                    className="text-slate-400 hover:text-saffron-600 dark:hover:text-amber-400 rounded-xl p-1.5 hover:bg-saffron-50 dark:hover:bg-slate-800 transition-colors"
+                    className="text-slate-400 hover:text-saffron-600 dark:hover:text-amber-400 rounded-xl p-1.5 hover:bg-saffron-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                     aria-label="Close modal"
                   >
                     <X className="w-5 h-5" />
@@ -96,4 +103,10 @@ export const Modal: React.FC<ModalProps> = ({
       )}
     </AnimatePresence>
   );
+
+  if (!mounted || typeof document === 'undefined') {
+    return null;
+  }
+
+  return createPortal(modalContent, document.body);
 };

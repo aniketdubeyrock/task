@@ -62,6 +62,34 @@ class AuthController(
         return ResponseEntity.ok(ApiResponse(success = true, data = profile))
     }
 
+    @PutMapping("/auth/profile")
+    @Operation(summary = "Update current user profile")
+    fun updateProfile(
+        @AuthenticationPrincipal user: User,
+        @Valid @RequestBody request: com.taskflow.dto.UpdateProfileRequest
+    ): ResponseEntity<ApiResponse<UserDto>> {
+        val updated = authService.updateProfile(user.email, request)
+        return ResponseEntity.ok(
+            ApiResponse(success = true, data = updated, message = "Profile updated successfully")
+        )
+    }
+
+    @PostMapping("/auth/change-password")
+    @Operation(summary = "Change authenticated user password")
+    fun changePassword(
+        @AuthenticationPrincipal user: User,
+        @Valid @RequestBody request: com.taskflow.dto.ChangePasswordRequest
+    ): ResponseEntity<ApiResponse<Map<String, String>>> {
+        authService.changePassword(user.email, request)
+        return ResponseEntity.ok(
+            ApiResponse(
+                success = true,
+                data = mapOf("status" to "success"),
+                message = "Password changed successfully"
+            )
+        )
+    }
+
     @GetMapping("/users")
     @Operation(summary = "List all team members")
     fun listUsers(): ResponseEntity<ApiResponse<List<UserDto>>> {

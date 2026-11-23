@@ -175,43 +175,65 @@ export const EmailTemplatesPage: React.FC = () => {
   return (
     <div className="flex flex-col gap-8">
       {/* Top Banner: SMTP Status & Diagnostics */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-crisp flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-colors">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-slate-900 text-white flex items-center justify-center flex-shrink-0 shadow-xs">
-            <Server className="w-6 h-6 text-brand-400" />
+          <div className="w-12 h-12 rounded-2xl bg-slate-900 dark:bg-slate-800 text-white flex items-center justify-center flex-shrink-0 border border-slate-700/60 shadow-xs">
+            <Server className="w-6 h-6 text-saffron-400" />
           </div>
           <div>
             <div className="flex items-center gap-2.5">
-              <h2 className="text-base font-bold text-slate-900">Gmail SMTP Transport Server</h2>
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">Gmail SMTP Transport Server</h2>
               {smtpStatus?.connected ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   Active
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
                   <AlertCircle className="w-3.5 h-3.5" />
                   Disconnected
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-500 mt-1">
-              Host: <span className="font-mono text-slate-700">smtp.gmail.com:465</span> &bull; Security:{' '}
-              <span className="font-mono text-slate-700">SSL/TLS</span> &bull; Sender:{' '}
-              <span className="font-mono text-slate-700">TaskFlow System</span>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              Host: <span className="font-mono text-slate-700 dark:text-slate-300">smtp.gmail.com:465</span> &bull; Security:{' '}
+              <span className="font-mono text-slate-700 dark:text-slate-300">SSL/TLS</span> &bull; Sender:{' '}
+              <span className="font-mono text-slate-700 dark:text-slate-300">TaskFlow System</span>
             </p>
           </div>
         </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={verifySmtpConnection}
-          isLoading={isVerifyingSmtp}
-          leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
-        >
-          Verify Connection
-        </Button>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={verifySmtpConnection}
+            isLoading={isVerifyingSmtp}
+            leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
+          >
+            Verify Connection
+          </Button>
+
+          {/* 500 Recovery UI preview button */}
+          <button
+            type="button"
+            onClick={() => {
+              window.dispatchEvent(
+                new CustomEvent('taskflow:server-error', {
+                  detail: {
+                    endpoint: '/api/admin/email-templates/sync',
+                    message: 'Internal server error while syncing dynamic email dispatch queue.',
+                  },
+                })
+              );
+            }}
+            className="text-xs font-bold px-3 py-1.5 rounded-xl border border-amber-300 dark:border-amber-700/60 bg-amber-50/70 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 hover:bg-amber-100 hover:border-amber-400 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5"
+            title="Preview animated 500 error waiting UI"
+          >
+            <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+            <span>Test 500 UI</span>
+          </button>
+        </div>
       </div>
 
       {/* Templates Section */}

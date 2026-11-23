@@ -52,6 +52,20 @@ data class AuthResponse(
     val token: String
 )
 
+data class UpdateProfileRequest(
+    @field:NotBlank(message = "Name is required")
+    val name: String
+)
+
+data class ChangePasswordRequest(
+    @field:NotBlank(message = "Current password is required")
+    val currentPassword: String,
+
+    @field:NotBlank(message = "New password is required")
+    @field:Size(min = 6, message = "New password must be at least 6 characters")
+    val newPassword: String
+)
+
 data class UserDto(
     val id: UUID,
     val name: String,
