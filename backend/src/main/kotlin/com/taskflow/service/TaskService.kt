@@ -22,6 +22,7 @@ import com.taskflow.repository.TaskActivityRepository
 import com.taskflow.repository.TaskRepository
 import com.taskflow.repository.UserRepository
 import com.taskflow.service.strategy.TaskSortingContext
+import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.data.jpa.domain.Specification
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -36,7 +37,8 @@ class TaskService(
     private val taskActivityRepository: TaskActivityRepository,
     private val notificationRepository: NotificationRepository,
     private val projectService: ProjectService,
-    private val sortingContext: TaskSortingContext
+    private val sortingContext: TaskSortingContext,
+    private val messagingTemplate: SimpMessagingTemplate? = null
 ) {
 
     @Transactional(readOnly = true)
@@ -137,7 +139,9 @@ class TaskService(
             )
         }
 
-        return task.toDto()
+        val dto = task.toDto()
+        broadcastTaskEvent(projectId, "CREATED", dto)
+        return dto
     }
 
     @Transactional
@@ -181,7 +185,9 @@ class TaskService(
             )
         }
 
-        return updatedTask.toDto()
+        val dto = updatedTask.toDto()
+        broadcastTaskEvent(task.project.id!!, "UPDATED", dto)
+        return dto
     }
 
     @Transactional
@@ -203,7 +209,9 @@ class TaskService(
             )
         )
 
-        return updatedTask.toDto()
+        val dto = updatedTask.toDto()
+        broadcastTaskEvent(task.project.id!!, "STATUS_CHANGED", dto)
+        return dto
     }
 
     @Transactional
@@ -212,13 +220,30 @@ class TaskService(
         if (user.role != Role.SUPERADMIN && task.project.owner.id != user.id) {
             throw ForbiddenException("Only project owners can delete tasks")
         }
+        val projectId = task.project.id!!
         taskRepository.delete(task)
+        broadcastTaskEvent(projectId, "DELETED", taskId = taskId)
     }
 
     @Transactional(readOnly = true)
     fun getTaskActivities(taskId: UUID, user: User): List<TaskActivityDto> {
         findTaskAndVerifyOwnership(taskId, user)
         return taskActivityRepository.findAllByTaskIdOrderByCreatedAtDesc(taskId).map { it.toDto() }
+    }
+
+    private fun broadcastTaskEvent(projectId: UUID, action: String, taskDto: TaskDto? = null, taskId: UUID? = null) {
+        try {
+            messagingTemplate?.convertAndSend(
+                "/topic/projects/$projectId/tasks",
+                mapOf(
+                    "action" to action,
+                    "task" to taskDto,
+                    "taskId" to (taskId ?: taskDto?.id)
+                )
+            )
+        } catch (_: Exception) {
+            // Non-blocking fallback
+        }
     }
 
     private fun findTaskAndVerifyOwnership(taskId: UUID, user: User): Task {

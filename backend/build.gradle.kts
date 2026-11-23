@@ -30,6 +30,9 @@ dependencies {
     // PostgreSQL
     runtimeOnly("org.postgresql:postgresql")
 
+    // WebSocket / Real-Time STOMP Messaging
+    implementation("org.springframework.boot:spring-boot-starter-websocket")
+
     // JWT (io.jsonwebtoken:jjwt)
     implementation("io.jsonwebtoken:jjwt-api:0.12.6")
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")

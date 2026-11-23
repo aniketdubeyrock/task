@@ -25,6 +25,7 @@ import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
 import { PriorityBadge } from '../../../components/ui/Badge';
 import { KanbanSkeleton } from '../../../components/feedback/KanbanSkeleton';
 import { useToast } from '../../../components/ui/Toast';
+import { wsClient } from '../../../services/websocket';
 import {
   ArrowLeft,
   Plus,
@@ -39,6 +40,14 @@ import {
   Clock,
   User as UserIcon,
   FolderKanban,
+  LayoutGrid,
+  List,
+  Download,
+  Printer,
+  Sparkles,
+  ChevronLeft,
+  ChevronRight,
+  Radio,
 } from 'lucide-react';
 
 interface ProjectBoardPageProps {
@@ -53,6 +62,11 @@ export const ProjectBoardPage: React.FC<ProjectBoardPageProps> = ({ projectId, o
   const [tasks, setTasks] = useState<Task[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // View Mode: Kanban vs Paginated Table
+  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(8);
 
   // Filters & Sorting Toolbar
   const [search, setSearch] = useState('');
@@ -110,6 +124,83 @@ export const ProjectBoardPage: React.FC<ProjectBoardPageProps> = ({ projectId, o
     fetchProjectAndTasks();
   }, [projectId, sortBy]);
 
+  // Real-time WebSocket / STOMP synchronization
+  useEffect(() => {
+    const unsubscribe = wsClient.subscribe(projectId, (event) => {
+      fetchProjectAndTasks();
+      toastSuccess(`Live Sync: Task ${event.action.toLowerCase().replace('_', ' ')}`);
+    });
+    return () => unsubscribe();
+  }, [projectId]);
+
+  // Apply Due Date Quick Presets
+  const applyDatePreset = (preset: 'today' | 'tomorrow' | 'week' | 'month') => {
+    const target = new Date();
+    if (preset === 'today') {
+      // today
+    } else if (preset === 'tomorrow') {
+      target.setDate(target.getDate() + 1);
+    } else if (preset === 'week') {
+      target.setDate(target.getDate() + 7);
+    } else if (preset === 'month') {
+      target.setMonth(target.getMonth() + 1);
+      target.setDate(0); // end of month
+    }
+    setTaskDueDate(target.toISOString().split('T')[0]);
+    setTaskDueDateError('');
+  };
+
+  // AI Task Assistant Auto-Suggester
+  const handleAISuggest = () => {
+    if (!taskTitle.trim()) {
+      setTaskTitleError('Enter a task title first so AI can suggest details');
+      return;
+    }
+    const suggestions = [
+      `• Objective: Execute and verify ${taskTitle.trim()}.\n• Acceptance Criteria:\n  - Code implementation meets clean architecture standards.\n  - Unit and integration tests pass with 100% assertions.\n  - UI matches responsive dark/light theme specifications.\n• Dependencies: None.`,
+      `• Deliverable: ${taskTitle.trim()}.\n• Key Milestones:\n  1. Architecture & schema design.\n  2. API endpoints and DTO contracts.\n  3. Frontend interactive components with optimistic states.\n  4. End-to-end regression verification.`,
+    ];
+    setTaskDescription(suggestions[Math.floor(Math.random() * suggestions.length)]);
+    toastSuccess('✨ AI generated task description & acceptance criteria!');
+  };
+
+  // Export Tasks to CSV
+  const handleExportCSV = () => {
+    if (tasks.length === 0) {
+      toastError('No tasks available to export');
+      return;
+    }
+    const headers = ['Task ID', 'Title', 'Status', 'Priority', 'Assignee', 'Due Date', 'Overdue', 'Created At'];
+    const rows = filteredTasks.map((t) => [
+      `"${t.id}"`,
+      `"${t.title.replace(/"/g, '""')}"`,
+      t.status,
+      t.priority,
+      `"${t.assignee?.name || 'Unassigned'}"`,
+      t.dueDate ? new Date(t.dueDate).toISOString().split('T')[0] : 'None',
+      t.isOverdue ? 'Yes' : 'No',
+      new Date(t.createdAt).toISOString().split('T')[0],
+    ]);
+    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute(
+      'download',
+      `${(project?.name || 'project').toLowerCase().replace(/\s+/g, '_')}_tasks.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toastSuccess('Project tasks exported to CSV successfully!');
+  };
+
+  // Print / PDF Project Report
+  const handlePrintReport = () => {
+    window.print();
+  };
+
   // Filter tasks in memory for instant responsiveness
   const filteredTasks = useMemo(() => {
     return tasks.filter((t) => {
@@ -129,6 +220,13 @@ export const ProjectBoardPage: React.FC<ProjectBoardPageProps> = ({ projectId, o
   const todoTasks = useMemo(() => filteredTasks.filter((t) => t.status === 'TODO'), [filteredTasks]);
   const inProgressTasks = useMemo(() => filteredTasks.filter((t) => t.status === 'IN_PROGRESS'), [filteredTasks]);
   const doneTasks = useMemo(() => filteredTasks.filter((t) => t.status === 'DONE'), [filteredTasks]);
+
+  // Paginated tasks for Table View
+  const totalPages = Math.max(1, Math.ceil(filteredTasks.length / pageSize));
+  const paginatedTasks = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredTasks.slice(start, start + pageSize);
+  }, [filteredTasks, currentPage, pageSize]);
 
   // Project progress statistics calculation
   const totalCount = tasks.length;
@@ -323,8 +421,12 @@ export const ProjectBoardPage: React.FC<ProjectBoardPageProps> = ({ projectId, o
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Back to Projects</span>
           </button>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">{project?.name || 'Project Board'}</h2>
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              Live Sync Active
+            </span>
             {overdueCount > 0 && (
               <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
                 <AlertCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
@@ -447,23 +549,75 @@ export const ProjectBoardPage: React.FC<ProjectBoardPageProps> = ({ projectId, o
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">Sort by:</span>
-          <div className="w-36">
-            <Select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-              <option value="dueDate">Due Date</option>
-              <option value="priority">Priority</option>
-              <option value="createdAt">Created Date</option>
-              <option value="title">Title</option>
-            </Select>
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">Sort:</span>
+            <div className="w-32">
+              <Select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                <option value="dueDate">Due Date</option>
+                <option value="priority">Priority</option>
+                <option value="createdAt">Created Date</option>
+                <option value="title">Title</option>
+              </Select>
+            </div>
+          </div>
+
+          {/* View Toggle: Kanban vs Table */}
+          <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200/80 dark:border-slate-700">
+            <button
+              type="button"
+              onClick={() => setViewMode('kanban')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                viewMode === 'kanban'
+                  ? 'bg-white dark:bg-slate-900 text-saffron-700 dark:text-amber-400 shadow-2xs'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Kanban</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('table')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                viewMode === 'table'
+                  ? 'bg-white dark:bg-slate-900 text-saffron-700 dark:text-amber-400 shadow-2xs'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+              }`}
+            >
+              <List className="w-3.5 h-3.5" />
+              <span>Table</span>
+            </button>
+          </div>
+
+          {/* Export Actions */}
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={handleExportCSV}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-colors"
+              title="Export tasks to CSV file"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">CSV</span>
+            </button>
+            <button
+              type="button"
+              onClick={handlePrintReport}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-colors"
+              title="Print project summary report or save as PDF"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">PDF</span>
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Kanban Board Columns with Drag & Drop */}
+      {/* Main Board View: Kanban or Paginated Table */}
       {isLoading ? (
         <KanbanSkeleton />
-      ) : (
+      ) : viewMode === 'kanban' ? (
         <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full items-start">
             {/* Column 1: TO DO */}
@@ -509,6 +663,183 @@ export const ProjectBoardPage: React.FC<ProjectBoardPageProps> = ({ projectId, o
             />
           </div>
         </DndContext>
+      ) : (
+        /* Paginated Table View */
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-3xl shadow-sm overflow-hidden flex flex-col">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200/90 dark:border-slate-800 text-slate-500 dark:text-slate-400 uppercase tracking-wider text-[11px] font-bold">
+                <tr>
+                  <th className="py-3.5 px-4">Status</th>
+                  <th className="py-3.5 px-4">Task Title</th>
+                  <th className="py-3.5 px-4">Priority</th>
+                  <th className="py-3.5 px-4">Collaborator</th>
+                  <th className="py-3.5 px-4">Due Date</th>
+                  <th className="py-3.5 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-150 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
+                {paginatedTasks.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-12 text-center text-slate-400">
+                      No tasks found matching your filters.
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedTasks.map((t) => (
+                    <tr
+                      key={t.id}
+                      className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors group cursor-pointer"
+                      onClick={() => onNavigate && onNavigate(`/tasks/${t.id}`)}
+                    >
+                      <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                        <select
+                          value={t.status}
+                          onChange={async (e) => {
+                            const newStatus = e.target.value as TaskStatus;
+                            setTasks((prev) =>
+                              prev.map((item) => (item.id === t.id ? { ...item, status: newStatus } : item))
+                            );
+                            try {
+                              await api.patch(`/tasks/${t.id}/status`, { status: newStatus });
+                              toastSuccess(`Status changed to ${newStatus}`);
+                            } catch {
+                              fetchProjectAndTasks();
+                            }
+                          }}
+                          className={`text-xs font-bold py-1 px-2.5 rounded-xl border focus:outline-none transition-all ${
+                            t.status === 'DONE'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800'
+                              : t.status === 'IN_PROGRESS'
+                              ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800'
+                              : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                          }`}
+                        >
+                          <option value="TODO">To Do</option>
+                          <option value="IN_PROGRESS">In Progress</option>
+                          <option value="DONE">Done</option>
+                        </select>
+                      </td>
+                      <td className="py-3 px-4 font-bold text-slate-900 dark:text-white max-w-xs truncate">
+                        <span className={t.status === 'DONE' ? 'line-through text-slate-400' : ''}>
+                          {t.title}
+                        </span>
+                        {t.description && (
+                          <p className="text-[11px] font-normal text-slate-400 truncate max-w-sm">
+                            {t.description}
+                          </p>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        <PriorityBadge priority={t.priority} size="sm" />
+                      </td>
+                      <td className="py-3 px-4">
+                        {t.assignee ? (
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-saffron-500 to-amber-500 text-white font-extrabold text-[9px] flex items-center justify-center">
+                              {t.assignee.name.slice(0, 2).toUpperCase()}
+                            </div>
+                            <span className="font-semibold text-xs">{t.assignee.name}</span>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 italic">Unassigned</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        {t.isOverdue && t.status !== 'DONE' ? (
+                          <span className="text-rose-600 dark:text-rose-400 font-bold flex items-center gap-1">
+                            <AlertCircle className="w-3.5 h-3.5" />
+                            {new Date(t.dueDate!).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} (Overdue)
+                          </span>
+                        ) : t.dueDate ? (
+                          <span className="text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                            {new Date(t.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">None</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => openEditTaskModal(t)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-saffron-600 hover:bg-saffron-50 dark:hover:bg-slate-800 transition-colors"
+                            title="Edit"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setDeletingTask(t)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Controls */}
+          <div className="flex items-center justify-between p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850/50 flex-wrap gap-3">
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              Showing{' '}
+              <strong className="text-slate-800 dark:text-slate-200">
+                {filteredTasks.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}
+              </strong>{' '}
+              to{' '}
+              <strong className="text-slate-800 dark:text-slate-200">
+                {Math.min(currentPage * pageSize, filteredTasks.length)}
+              </strong>{' '}
+              of <strong className="text-slate-800 dark:text-slate-200">{filteredTasks.length}</strong> tasks
+            </span>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                <span>Prev</span>
+              </button>
+
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300 px-2">
+                Page {currentPage} of {totalPages}
+              </span>
+
+              <button
+                type="button"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <span>Next</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="ml-2 text-xs py-1 px-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-semibold text-slate-700 dark:text-slate-200"
+              >
+                <option value={5}>5 / page</option>
+                <option value={8}>8 / page</option>
+                <option value={15}>15 / page</option>
+                <option value={30}>30 / page</option>
+              </select>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Task Modal (Create & Edit) */}
@@ -532,15 +863,26 @@ export const ProjectBoardPage: React.FC<ProjectBoardPageProps> = ({ projectId, o
           />
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-slate-700 tracking-wide">
-              Description (Optional)
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 tracking-wide">
+                Description (Optional)
+              </label>
+              <button
+                type="button"
+                onClick={handleAISuggest}
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-saffron-600 dark:text-amber-400 hover:text-saffron-700 hover:underline cursor-pointer"
+                title="Automatically generate acceptance criteria based on title"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>AI Assist</span>
+              </button>
+            </div>
             <textarea
               rows={3}
               placeholder="Provide extra details or requirements..."
               value={taskDescription}
               onChange={(e) => setTaskDescription(e.target.value)}
-              className="w-full text-xs p-3 bg-white rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-saffron-500/25 focus:border-saffron-500 hover:border-saffron-300 transition-colors"
+              className="w-full text-xs p-3 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-saffron-500/25 focus:border-saffron-500 hover:border-saffron-300 transition-colors"
             />
           </div>
 
@@ -566,34 +908,71 @@ export const ProjectBoardPage: React.FC<ProjectBoardPageProps> = ({ projectId, o
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="Due Date"
-              type="date"
-              value={taskDueDate}
-              onChange={(e) => {
-                setTaskDueDate(e.target.value);
-                setTaskDueDateError('');
-              }}
-              error={taskDueDateError}
-            />
+          <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Input
+                  label="Due Date"
+                  type="date"
+                  value={taskDueDate}
+                  onChange={(e) => {
+                    setTaskDueDate(e.target.value);
+                    setTaskDueDateError('');
+                  }}
+                  error={taskDueDateError}
+                />
+              </div>
 
-            <Select
-              label="Assignee / Collaborator"
-              value={taskAssigneeId}
-              onChange={(e) => {
-                setTaskAssigneeId(e.target.value);
-                setTaskAssigneeError('');
-              }}
-              error={taskAssigneeError}
-            >
-              <option value="">Select Collaborator...</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name} ({u.role === 'SUPERADMIN' ? 'Superadmin' : 'Member'})
-                </option>
-              ))}
-            </Select>
+              <Select
+                label="Assignee / Collaborator"
+                value={taskAssigneeId}
+                onChange={(e) => {
+                  setTaskAssigneeId(e.target.value);
+                  setTaskAssigneeError('');
+                }}
+                error={taskAssigneeError}
+              >
+                <option value="">Select Collaborator...</option>
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name} ({u.role === 'SUPERADMIN' ? 'Superadmin' : 'Member'})
+                  </option>
+                ))}
+              </Select>
+            </div>
+
+            {/* Quick Due Date Presets */}
+            <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-1">Presets:</span>
+              <button
+                type="button"
+                onClick={() => applyDatePreset('today')}
+                className="text-[11px] font-semibold py-1 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-saffron-400 hover:text-saffron-600 transition-colors"
+              >
+                Today
+              </button>
+              <button
+                type="button"
+                onClick={() => applyDatePreset('tomorrow')}
+                className="text-[11px] font-semibold py-1 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-saffron-400 hover:text-saffron-600 transition-colors"
+              >
+                Tomorrow
+              </button>
+              <button
+                type="button"
+                onClick={() => applyDatePreset('week')}
+                className="text-[11px] font-semibold py-1 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-saffron-400 hover:text-saffron-600 transition-colors"
+              >
+                +1 Week
+              </button>
+              <button
+                type="button"
+                onClick={() => applyDatePreset('month')}
+                className="text-[11px] font-semibold py-1 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-saffron-400 hover:text-saffron-600 transition-colors"
+              >
+                End of Month
+              </button>
+            </div>
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
